@@ -1,0 +1,68 @@
+{
+  "info": {
+    "_postman_id": "a4b16a87-7a61-4b2a-9c67-9b00a2a5f001",
+    "name": "BAS API - Autenticacion JWT",
+    "description": "Pruebas de registro, login y endpoints protegidos. Ejecutar en orden: registro, login y luego las pruebas protegidas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "email", "value": "alumno@upiiz.edu.mx" },
+    { "key": "password", "value": "ClaveSegura123" }
+  ],
+  "item": [
+    {
+      "name": "1 - Registrar usuario",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Alumno de Prueba\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/auth/signup"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Registro: HTTP 201', function () { pm.response.to.have.status(201); });", "pm.test('No devuelve password', function () { pm.expect(pm.response.text()).not.to.include('password'); });"] } }]
+    },
+    {
+      "name": "2 - Iniciar sesion y guardar token",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Login: HTTP 200', function () { pm.response.to.have.status(200); });", "const data = pm.response.json();", "pm.expect(data.token).to.be.a('string').and.not.empty;", "pm.collectionVariables.set('token', data.token);", "pm.collectionVariables.set('tokenType', data.tokenType || 'Bearer');"] } }]
+    },
+    {
+      "name": "3 - Consultar mi perfil (token valido)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/users/me"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Perfil: HTTP 200', function () { pm.response.to.have.status(200); });", "pm.test('No devuelve password', function () { pm.expect(pm.response.text()).not.to.include('password'); });"] } }]
+    },
+    {
+      "name": "4 - Consultar todos los usuarios (token valido)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Lista usuarios: HTTP 200', function () { pm.response.to.have.status(200); });", "pm.test('No devuelve passwords', function () { pm.expect(pm.response.text()).not.to.include('password'); });"] } }]
+    },
+    {
+      "name": "5 - Perfil sin token (debe ser 401)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/users/me" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Sin token: HTTP 401', function () { pm.response.to.have.status(401); });"] } }]
+    },
+    {
+      "name": "6 - Perfil con token invalido (debe ser 401)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer token_falso_123" }],
+        "url": "{{baseUrl}}/users/me"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Token invalido: HTTP 401', function () { pm.response.to.have.status(401); });"] } }]
+    }
+  ]
+}
